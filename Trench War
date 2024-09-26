@@ -1,0 +1,344 @@
+-- ScreenGui object
+local gui = Instance.new("ScreenGui")
+gui.Name = "CustomLoader"
+gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 180)
+frame.Position = UDim2.new(0.5, -150, 0.9, -280)
+frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.Parent = gui
+
+-- UICorner of the frame
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
+
+-- Title 
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0.99, 0, 0, 60)
+Title.Position = UDim2.new(0.03, 0, 0.10, 0)
+Title.BackgroundColor3 = Color3.new(0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextSize = 25
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "Petlog Hub|Trench War" -- Change to your script name
+Title.Parent = frame
+
+-- Loading bar frame
+local loadingBarFrame = Instance.new("Frame")
+loadingBarFrame.Size = UDim2.new(0, 0, 0.2, 0)
+loadingBarFrame.Position = UDim2.new(0.02, 0, 0.7, 0)
+loadingBarFrame.BackgroundColor3 = Color3.new(0, 1, 0) -- Changed to green
+loadingBarFrame.Parent = frame
+
+-- UICorner of the loading bar frame
+local corner_2 = Instance.new("UICorner")
+corner_2.CornerRadius = UDim.new(0, 6)
+corner_2.Parent = loadingBarFrame
+
+-- Loading text
+local loadingText = Instance.new("TextLabel")
+loadingText.Size = UDim2.new(0.95, 0, 0, 30)
+loadingText.Position = UDim2.new(0.03, 0, 0.7, 0)
+loadingText.BackgroundColor3 = Color3.new(0, 0, 0)
+loadingText.BackgroundTransparency = 1
+loadingText.TextColor3 = Color3.new(1, 1, 1)
+loadingText.TextSize = 18
+loadingText.Font = Enum.Font.SourceSansBold
+loadingText.Text = "Loading..."
+loadingText.Parent = frame
+
+-- Function to animate the loading bar
+function animateLoadingBar()
+    local progress = 0
+
+    while progress < 100 do
+        progress = progress + 1
+        updateProgress(progress)
+        wait(0.05) -- Adjust the animation speed as needed
+    end
+
+    loadingText.Text = "Successfully Loaded"
+    wait(0.5)
+    gui:Destroy()
+
+    -- Load Kavo UI Library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/ZeianRussell/Kavo-UI-Library/main/Movable.source.lua"))()
+local Window = Library.CreateLib("Petlog Hub | Trench war", "DarkTheme")
+
+-- Create Tabs
+local Tab1 = Window:NewTab("Player")
+local Tab2 = Window:NewTab("Teleport")
+local Tab3 = Window:NewTab("Visual")
+local Tab4 = Window:NewTab("Credits")
+
+-- Player Tab Section Initialization
+local PlayerSection = Tab1:NewSection("Edit Hitbox size")
+PlayerSection:NewTextBox("Size", "Put hitbox size number that you want", function(value)
+    local size = tonumber(value)
+    if size then
+        _G.HeadSize = size
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Hitbox Size Changed",
+            Text = "Hitbox size set to " .. size,
+            Duration = 6,
+        })
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Error",
+            Text = "Please enter a valid number",
+            Duration = 6,
+        })
+    end
+end)
+
+PlayerSection:NewButton("Activate Hitbox", "Click this to activate the hitbox", function()
+    _G.Disabled = true
+
+    game:GetService('RunService').RenderStepped:Connect(function()
+        if _G.Disabled then
+            for _, v in ipairs(game:GetService('Players'):GetPlayers()) do
+                if v.Name ~= game.Players.LocalPlayer.Name then
+                    pcall(function()
+                        local humanoidRootPart = v.Character and v.Character:FindFirstChild("HumanoidRootPart")
+                        if humanoidRootPart then
+                            humanoidRootPart.Size = Vector3.new(_G.HeadSize, _G.HeadSize, _G.HeadSize)
+                            humanoidRootPart.Transparency = 0.6
+                            humanoidRootPart.BrickColor = BrickColor.new("Really black")
+                            humanoidRootPart.Material = Enum.Material.Neon
+                            humanoidRootPart.CanCollide = false
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+end)
+
+-- Infinite Jump Toggle with proper connection management
+local jumpConnection -- Variable to store the connection
+local infiniteJumpEnabled = false -- Flag to check if infinite jump is enabled
+
+PlayerSection:NewToggle("Infinite Jump", "Enable or disable infinite jump", function(state)
+    local player = game:GetService("Players").LocalPlayer
+    local userInputService = game:GetService("UserInputService")
+
+    infiniteJumpEnabled = state -- Update the infinite jump state based on the toggle
+
+    if state then
+        -- Infinite Jump Enabled
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Infinite Jump Enabled",
+            Text = "You can now jump infinitely.",
+            Duration = 6,
+        })
+
+        -- Create the connection if it doesn't exist already
+        if not jumpConnection then
+            jumpConnection = userInputService.JumpRequest:Connect(function()
+                if infiniteJumpEnabled and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+                    player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+                end
+            end)
+        end
+
+    else
+        -- Infinite Jump Disabled
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Infinite Jump Disabled",
+            Text = "Infinite jump has been turned off.",
+            Duration = 6,
+        })
+
+        -- Disconnect the jump connection when disabled
+        if jumpConnection then
+            jumpConnection:Disconnect()
+            jumpConnection = nil -- Clear the connection variable
+        end
+    end
+end)
+
+PlayerSection:NewButton("Quick Reset", "Click this to reset your character", function()
+    local player = game:GetService("Players").LocalPlayer
+
+    -- Function to reset character
+    local function resetCharacter()
+        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Health = 0 -- Set health to 0 to reset the character
+        end
+    end
+    
+    resetCharacter()
+end)
+
+PlayerSection:NewButton("Infinite yield Script", "Click this to load the script ", function()
+loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+end)
+
+PlayerSection:NewButton("Heal", "This script is only for your Visual it's not actually healling you", function()
+    local player = game:GetService("Players").LocalPlayer
+
+    -- Function to reset character
+    local function resetCharacter()
+        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Health = 2000 -- Set health to 2000
+        end
+    end
+    
+    resetCharacter()
+end)
+
+-- Define the teleport function
+local function teleportTo(destination)
+    local player = game:GetService("Players").LocalPlayer
+    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(destination)
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Teleported",
+            Text = "You have been teleported to the selected location.",
+            Duration = 5,
+        })
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Error",
+            Text = "Failed to teleport. Character not found.",
+            Duration = 5,
+        })
+    end
+end
+
+-- Teleport Tab Section Initialization
+local TeleportSection = Tab2:NewSection("Teleport Section")
+
+-- Create buttons for teleporting to different trench positions
+
+TeleportSection:NewButton("Allied base", "Click this to teleport", function()
+    teleportTo(Vector3.new(0.2531529366970062, 103.1989974975586, 765.299072265625))
+end)
+
+TeleportSection:NewButton("Axis base", "Click this to teleport", function()
+    teleportTo(Vector3.new(-0.3233788013458252, 103.19900512695312, -765.1978149414062))
+end)
+
+TeleportSection:NewButton("Lobby", "Click this to teleport", function()
+    teleportTo(Vector3.new(81.9078369140625, -241.54002380371094, 0.06690750271081924))
+end)
+
+TeleportSection:NewButton("Trench 1", "Click this to teleport", function()
+    teleportTo(Vector3.new(-149.8618927001953, 92.99897766113281, 498.97222900390625))
+end)
+
+TeleportSection:NewButton("Trench 2", "Click this to teleport", function()
+    teleportTo(Vector3.new(-140.17291259765625, 92.99897766113281, 252.165771484375))
+end)
+
+TeleportSection:NewButton("Trench 3", "Click this to teleport", function()
+    teleportTo(Vector3.new(-145.9719696044922, 92.99897766113281, 1.5571177005767822))
+end)
+
+TeleportSection:NewButton("Trench 4", "Click this to teleport", function()
+    teleportTo(Vector3.new(-140.5991973876953, 92.99897766113281, -250.78997802734375))
+end)
+
+TeleportSection:NewButton("Trench 5", "Click this to teleport", function()
+    teleportTo(Vector3.new(-147.81509399414062, 92.99897766113281, -500.7750549316406))
+end)
+
+-- Visual Tab
+local VisualSection = Tab3:NewSection("Visual Section") -- Create a section for shaders
+
+-- Button connection
+VisualSection:NewButton("Morning", "Click this to Set Morning", function()
+    -- Set the time to morning
+    game.Lighting.ClockTime = 7 -- 7 corresponds to 7 AM (morning)
+end)
+
+
+VisualSection:NewButton("Day", "Click this to Set Day", function()
+    -- Set the time to day
+    game.Lighting.ClockTime = 14 -- 14 corresponds to 2 PM
+end)
+
+VisualSection:NewButton("Sunset", "Click this to Set Sunset", function()
+    -- Set the time to sunset
+    game.Lighting.ClockTime = 18 -- 18 corresponds to 6 PM (sunset)
+end)
+
+VisualSection:NewButton("Night", "Click this to Set Night", function()
+    -- Set the time to night
+    game.Lighting.ClockTime = 0 -- 0 corresponds to midnight
+end)
+
+VisualSection:NewButton("2:00AM", "Click this to Set 2:00AM Night", function()
+    -- Set the time to evening with a visible half moon
+    game.Lighting.ClockTime = 20 -- 20 corresponds to 8 PM
+end)
+
+VisualSection:NewButton("Shader Script", "Click this to activate shader", function()	loadstring(game:HttpGet(('https://pastefy.app/xXkUxA0P/raw'),true))()
+end)
+
+-- Credits Tab
+local CreditsSection = Tab4:NewSection("Credits")
+CreditsSection:NewLabel("Credits to Loading Script:D")
+CreditsSection:NewLabel("Credits to GUI Toggle Button Script:D")
+CreditsSection:NewLabel("Did you know Perez + Athan = to petlog?")
+CreditsSection:NewLabel("Script owner is Me John")
+CreditsSection:NewLabel("The petlog the petlog is real")
+local CreditsSection = Tab4:NewSection("My YouTube Channel")
+CreditsSection:NewButton("YouTube Channel Link", "Click this to Copy YouTube channel link", function()
+    setclipboard("https://youtube.com/@john_paquitoscriptshowcaser?si=-tBXbIplTfRj7ZRI")  -- Copies the link to the clipboard
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Link Copied!";
+        Text = "YouTube Channel link copied to clipboard.";
+        Duration = 5;
+    })
+end)
+
+
+-- Toggle UI Button (Repositioned)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ScreenGui"
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local Toggle = Instance.new("TextButton")
+Toggle.Name = "Toggle"
+Toggle.Parent = ScreenGui
+Toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Toggle.Position = UDim2.new(0.05, 0, 0.1, 0)  -- Repositioned to make sure it's visible on screen
+Toggle.Size = UDim2.new(0, 120, 0, 40)  -- Increased size to ensure it is clickable
+Toggle.Font = Enum.Font.SourceSans
+Toggle.Text = "Close"
+Toggle.TextColor3 = Color3.fromRGB(248, 248, 248)
+Toggle.TextSize = 28.000
+Toggle.Draggable = true
+
+-- Toggle the UI when the button is clicked
+Toggle.MouseButton1Click:Connect(function()
+    if Toggle.Text == "Close" then
+        Toggle.Text = "Open"
+    else
+        Toggle.Text = "Close"
+    end
+    Library:ToggleUI()
+end)
+
+-- UI Corner for the Toggle Button
+local Corner = Instance.new("UICorner")
+Corner.Name = "Corner"
+Corner.Parent = Toggle
+end
+
+-- Function to update the loading progress
+function updateProgress(progress)
+    loadingBarFrame.Size = UDim2.new(progress / 105, 0, 0.2, 0)
+    loadingText.Text = "Loading: " .. progress .. "%"
+end
+
+-- Start the loading animation
+spawn(animateLoadingBar)
